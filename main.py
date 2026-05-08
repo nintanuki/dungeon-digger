@@ -1,5 +1,10 @@
+import os
 import pygame
 import sys
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 from settings import *
 from systems.audio import AudioManager
@@ -103,6 +108,7 @@ class GameManager:
         self.map_memory = None
 
         # -------- Post-processing --------
+        self.full_screen = False
         self.crt = CRT(self.screen)
 
         # -------- Rendering facade --------
@@ -610,6 +616,10 @@ class GameManager:
 
         self.map_memory.remember_visible_map_info()
 
+        # Any committed action restarts the idle peek timer so the look-around
+        # animation only plays after a real lull, not between rapid actions.
+        self.player.reset_idle_animation()
+
         # All temporary status timers (light radius, repellent, invisibility,
         # cloak cooldown) belong to the player and tick themselves.
         self.player.tick_status_effects()
@@ -733,6 +743,7 @@ class GameManager:
         # other handlers still see the press.
         if event.key == pygame.K_F11:
             pygame.display.toggle_fullscreen()
+            self.full_screen = not self.full_screen
 
         # While a tutorial card is up it consumes ALL keyboard input so the
         # player can't accidentally play through the overlay.
@@ -797,6 +808,7 @@ class GameManager:
         # BACK is the global fullscreen toggle and falls through.
         if event.button == InputSettings.JOY_BUTTON_BACK:
             pygame.display.toggle_fullscreen()
+            self.full_screen = not self.full_screen
 
         if (self.tutorial is not None and self.tutorial.is_blocking):
             self.tutorial.handle_event(event)
@@ -948,7 +960,8 @@ class GameManager:
             self.render.draw_leaderboard_screen()
 
         # Apply CRT pass after world/UI rendering.
-        self.crt.draw()
+        if not self.full_screen:
+            self.crt.draw()
 
     def run(self):
         """Run the main game loop until the player quits."""

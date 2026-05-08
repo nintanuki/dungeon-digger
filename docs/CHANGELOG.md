@@ -978,3 +978,108 @@ them" branch immediately calls _stop_chasing â†’ play_normal_music,
 flipping music back. Guarding the play_normal_music call on "no other
 monster is still chasing" leaves chase music playing as long as any
 single monster is in pursuit.
+
+
+---
+
+## 2026-05-07 08:49 -04:00 — Add idle "look around" peek animation for the player
+
+**File:** settings.py
+**Lines (at time of edit):** 282-296 (added in PlayerSettings)
+**Before:**
+    class PlayerSettings:
+        ANIMATION_SPEED = 1
+        FLASH_CYCLE_FRAMES = 30
+        FLASH_HALF_CYCLE = FLASH_CYCLE_FRAMES // 2
+**After:**
+    class PlayerSettings:
+        ANIMATION_SPEED = 1
+        FLASH_CYCLE_FRAMES = 30
+        FLASH_HALF_CYCLE = FLASH_CYCLE_FRAMES // 2
+        IDLE_ANIMATION_DELAY_MS = 4000
+        IDLE_ANIMATION_FRAME_MS = 220
+        IDLE_ANIMATION_SEQUENCE = (
+            'center', 'left', 'center', 'right',
+            'center', 'left', 'center', 'right', 'center',
+        )
+**Why:** Centralized tuning knobs for the new idle peek animation (delay before
+it triggers, frame hold duration, and the peek pattern itself) so the values
+are easy to tweak without touching gameplay code.
+
+**File:** settings.py
+**Lines (at time of edit):** 488-515 (modified PLAYER_SPRITES dict in AssetPaths)
+**Before:**
+    PLAYER_SPRITES keyed by (helmet_state, facing) with 6 entries.
+**After:**
+    PLAYER_SPRITES keyed by (helmet_state, facing, peek) with 10 entries; adds
+    the four new player_helmet_up_{left,right}_looking_{left,right}.png frames
+    used by the idle peek cycle. PLAYER alias updated to the new 3-tuple key.
+**Why:** A third "peek" axis is needed so the renderer can swap to the
+looking-left / looking-right variants during the idle animation.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 34-50 (modified Player.__init__)
+**Before:**
+    self.sprites typed as dict[tuple[str, str], ...]; base_image lookup used
+    a 2-tuple (helmet_state, facing).
+**After:**
+    self.sprites typed as dict[tuple[str, str, str], ...]; new fields peek,
+    idle_elapsed_ms, idle_frame_index, idle_frame_elapsed_ms, _idle_last_tick_ms.
+    base_image lookup uses the new 3-tuple key.
+**Why:** Adds the per-instance state required to track when the peek cycle
+should start, which frame is active, and how long the current frame has held.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 562-573 (modified update_invisibility_visual)
+**Before:**
+    self.base_image = self.sprites[(self.helmet_state, self.facing)]
+**After:**
+    peek = self.peek if self.helmet_state == 'up' else 'center'
+    self.base_image = self.sprites[(self.helmet_state, self.facing, peek)]
+**Why:** Routes the active peek frame into the rendered sprite. Non-up helmet
+states (cloak/repelled) only have center variants, so peek is forced to
+'center' for them.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 600-647 (added reset_idle_animation, update_idle_animation; modified animate)
+**Before:**
+    animate() called only update_invisibility_visual at the end.
+**After:**
+    Adds reset_idle_animation() and update_idle_animation(). animate() now
+    calls update_idle_animation() before update_invisibility_visual() so the
+    new peek state feeds straight into sprite selection on the same frame.
+**Why:** Implements the timed idle peek behavior using real-time pygame ticks
+so the animation is FPS-independent; resets cleanly whenever the player moves
+or a status effect changes the helmet.
+
+**File:** main.py
+**Lines (at time of edit):** 614-617 (added in advance_turn)
+**Before:**
+    self.map_memory.remember_visible_map_info()
+    self.player.tick_status_effects()
+**After:**
+    self.map_memory.remember_visible_map_info()
+    self.player.reset_idle_animation()
+    self.player.tick_status_effects()
+**Why:** Non-move actions (dig, light, repellent, etc.) still commit a turn but
+don't set is_moving, so the idle timer needs an explicit reset here to keep
+the peek animation from firing in the middle of rapid action sequences.
+
+
+---
+
+## 2026-05-07 09:05 -04:00 — Shorten idle peek animation to one left/right cycle
+
+**File:** settings.py
+**Lines (at time of edit):** 293-296 (modified PlayerSettings.IDLE_ANIMATION_SEQUENCE)
+**Before:**
+    IDLE_ANIMATION_SEQUENCE = (
+        'center', 'left', 'center', 'right',
+        'center', 'left', 'center', 'right', 'center',
+    )
+**After:**
+    IDLE_ANIMATION_SEQUENCE = (
+        'center', 'left', 'center', 'right', 'center',
+    )
+**Why:** User requested a shorter idle animation: one peek left and one peek
+right per cycle instead of two of each.

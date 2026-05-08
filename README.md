@@ -3,6 +3,15 @@
 Dungeon Digger is a turn-based dungeon crawler where each action you take advances the world.
 You dig for treasure, survive monsters, unlock doors, and descend through every level.
 
+## Status
+
+**Phase: Playable, polishing.** Full multi-level run, named save slots, leaderboard, shop, and tutorial all work end-to-end. Active work is performance caching, balance tuning, and visual polish. See [docs/TODO.md](docs/TODO.md) for the live backlog.
+
+## Requirements
+
+- Python 3.10+
+- Pygame 2.5+
+
 ## Objective
 
 Clear all dungeon levels in order by finding a key and unlocking the door on each level.
@@ -178,13 +187,14 @@ is not supported.
 
 ## Documentation
 
-Project docs live under `docs/`:
+Read these in order before contributing:
 
-- [Changelog](docs/CHANGELOG.md) — append-only record of every code change.
-- [Testing checklist & refactoring rules](docs/TESTING.md) — what to verify
-  after a change and the conventions every edit must follow.
-- [TODO](docs/TODO.md) — prioritized backlog of refactors, bugs, balance, and
-  ideas.
+1. **[README.md](README.md)** — *(this file)* what the project is and how to run it.
+2. **[docs/TODO.md](docs/TODO.md)** — phased roadmap, known bugs, ideas.
+3. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the code actually works.
+4. **[docs/CHANGELOG.md](docs/CHANGELOG.md)** — append-only history of every change.
+5. **[docs/TESTING.md](docs/TESTING.md)** — manual smoke-test checklist after changes.
+6. **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — required reading for every editor, human or AI.
 
 ## Project Layout
 
